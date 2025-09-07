@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LimeDOM.js Demo v0.5.1</title>
+  <link rel="stylesheet" href="./LimeDOM.css" />
+  <!-- Important: no defer, so LimeDOM is available to inline code -->
+  <script src="./LimeDOM.js"></script>
+</head>
+<body>
+<script>
+LimeDOM.page.title = "LimeDOM.js Demo v0.5.1";
+// LimeDOM.layout.columns = 3; // optional override; leave commented for responsive
+LimeDOM.layout.mode = "columns";
+
+LimeDOM.add.title(LimeDOM.page.title);
+LimeDOM.add.subtitle("Demonstration");
+
+LimeDOM.begin("NBA Scoreboard — literals");
+LimeDOM.add.table([
+  { Team: "Boston Celtics",     Q1: 25, Q2: 27, Q3: 22, Q4: 29, Final: 103 },
+  { Team: "Los Angeles Lakers", Q1: 28, Q2: 24, Q3: 31, Q4: 26, Final: 109 }
+]);
+LimeDOM.end();
+
+LimeDOM.begin("Celtics points by quarter");
+LimeDOM.add.chart(
+  [
+    { label: "Q1", value: 25 },
+    { label: "Q2", value: 27 },
+    { label: "Q3", value: 22 },
+    { label: "Q4", value: 29 },
+    { label: "TOTAL", value: 103 }
+  ],
+  { title: "Points" }
+);
+LimeDOM.end();
+
+LimeDOM.begin("Lakers points by quarter");
+LimeDOM.add.chart(
+  [
+    { label: "Q1", value: 28 },
+    { label: "Q2", value: 24 },
+    { label: "Q3", value: 31 },
+    { label: "Q4", value: 26 },
+    { label: "TOTAL", value: 109 }
+  ],
+  { title: "Points" }
+);
+LimeDOM.end();
+
+LimeDOM.begin("Pie Chart — Lakers by quarter");
+LimeDOM.add.pie({ Q1:28, Q2:24, Q3:31, Q4:26 }, { title: "Points", showValues: true });
+LimeDOM.end();
+
+LimeDOM.begin("Pie Chart — Celtics by quarter");
+LimeDOM.add.pie({ Q1:25, Q2:27, Q3:22, Q4:29 }, { title: "Points", showValues: true });
+LimeDOM.end();
+
+LimeDOM.begin("Pie Chart — Celtics vs Lakers");
+LimeDOM.add.pie({ Celtics:103, Lakers:109 }, { title: "Points", showValues: true });
+LimeDOM.end();
+
+// 1) COPY BUTTONS (3 variants)
+LimeDOM.begin("Copy buttons");
+LimeDOM.add.copy("#1db954");                           // hex → shows color swatch
+LimeDOM.add.copy(["API key: abc-123-xyz", "abc-123-xyz"]);          // [label, value]
+LimeDOM.add.copy("Support Email", "help@acme.io");     // (label, value)
+LimeDOM.end();
+
+// 2) WEBPAGE CARDS (URL & bare hostname)
+LimeDOM.begin("Webpage cards");
+LimeDOM.add.webpage("linktr.ee/adomm420"); 
+LimeDOM.add.webpage("github.com/adomm420");
+LimeDOM.add.webpage("github.com/adomm420/limeDOM");
+LimeDOM.add.webpage("github.com/adomm420/Ping-Monitor");
+LimeDOM.add.webpage("github.com/adomm420/YT-Zoom");
+LimeDOM.end();
+
+// 3) NOTE & QUOTE
+LimeDOM.begin("Notes & quotes");
+LimeDOM.add.note("Tip: Tables accept arrays of objects, arrays of arrays, or a key/value map.");
+LimeDOM.add.quote("Simplicity is the ultimate sophistication.", "Leonardo da Vinci");
+LimeDOM.end();
+
+// 4) SINGLE IMAGE (click → fullscreen)
+LimeDOM.begin("Single image");
+LimeDOM.add.image("https://picsum.photos/seed/lime/900/420", "Showcase image");
+LimeDOM.end();
+
+// 5) IMAGE GRID (with fullscreen gallery)
+LimeDOM.begin("Image grid");
+LimeDOM.add.images([
+  "https://picsum.photos/seed/lime1/600/360",
+  "https://picsum.photos/seed/lime2/600/360",
+  { src: "https://picsum.photos/seed/lime3/600/360", alt: "Third image" },
+  { src: "https://picsum.photos/seed/lime4/600/360", alt: "Fourth image" }
+]);
+LimeDOM.end();
+
+// 6) FILE PICKER (drag & drop + click)
+LimeDOM.begin("Try your own file");
+LimeDOM.add.filepicker({
+  title: "Drop CSV/JSON/TSV or Ping-Check .txt",
+  hint:  "Auto-detect & render",
+  accept: ".csv,.tsv,.json,.txt",
+  limit: 40
+});
+LimeDOM.end();
+
+</script>
+</body>
+</html>
