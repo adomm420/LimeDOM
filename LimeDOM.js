@@ -1,151 +1,51 @@
-/*
+/*  
 ────────────────────────────────────────────────────────────
-📄  LimeDOM.js — Zero-ceremony UI + Clipboard + Link Cards
-🔧  Version:  0.4.8 (images(): multi-source gallery + smarter alts)
-📅  Updated:  2025-09-06
+📄  LimeDOM.js — UI + Tables + Charts + Gallery + Web Cards
+🔧  Version:  0.5.1 (pie charts; favicon-only web cards; image-bound nav)
+📅  Updated:  2025-09-07
 👤  Author:   Mantas Adomavičius
 
-🧠  Description
-    Minimal dark UI with lime accent and a tiny `display.*` API.
-    Masonry/grid layout, copy buttons, webpage previews, notes,
-    quotes — and images with fullscreen viewer & gallery.
+🧠  Summary
+  Minimal dark UI with lime accent and a tiny `LimeDOM.*` API.
+  Masonry/grid layout, copy buttons, webpage previews, notes,
+  quotes, images (fullscreen gallery), tables, bar & pie charts.
 
-📚  API REFERENCE (public)
-  • display.page.title = "Text"           → sets document <title>.
-  • display.page.icon  = "favicon.png"    → sets <link rel="icon">.
+📚  API (highlights)
+  • LimeDOM.page.title / .icon
+  • LimeDOM.layout.mode = "columns" | "grid"; LimeDOM.layout.columns = 1..6
+  • LimeDOM.begin("Title") ... LimeDOM.end()
 
-  • display.layout.mode = "columns" | "grid"
-  • display.layout.columns = N            → 1–6
+  • LimeDOM.add.copy(value|[label,value]|(label,value))
+  • LimeDOM.add.webpage(urlLike)
+  • LimeDOM.add.note("Text"), LimeDOM.add.quote("Text","Author")
+  • LimeDOM.add.image("src","alt?"), LimeDOM.add.images(list)
 
-  • display.add.title("Text")             → header title text.
-  • display.add.subtitle("Text")          → header subtitle text.
-
-  • display.section("Title")              → starts a section card
-    display.end()                         → ends the section
-
-  • display.add.copy(value)               → copy button (hex swatch if #hex)
-    display.add.copy(label, value)        → custom label
-  • display.add.webpage(urlLike)          → rich metadata card (http/https)
-  • display.add.note("Text")              → paragraph note
-  • display.add.quote("Text","Author?")   → quote block
-
-  • display.add.image("src","alt?")       → thumbnail → fullscreen overlay
-      (alt defaults to the file name when omitted)
-
-  • display.add.images(list)              → multi-thumb gallery + fullscreen
-      list can be:
-        ["a.jpg","b.png", ...] OR
-        [{src:"a.jpg",alt:"..."} , ...]
-      Overlay navigation: click left/right halves or use ← / →.
-      No wrap-around (clamped at ends). Esc/backdrop closes.
-
-📜  CHANGELOG (condensed)
-  • v0.4.8 — add.images() gallery; default alt from file name; gallery nav (no wrap).
-  • v0.4.7 — restore rich webpage cards; add single image overlay; Esc closes.
-  • v0.4.5 — tab.* → add.title/add.subtitle; removed duplicate clicktocopy.
-  • v0.4.4 — Banner includes API reference section.
-  • v0.4.3 — New layout mode: "columns" masonry.
+  • LimeDOM.add.table(values)
+  • LimeDOM.add.chart(values, {title?, height?, max?, paddingTop?, showValues?, palette?})
+  • LimeDOM.add.pie(values,   {title?, height?, valueFormat?, palette?, showLabels?, showValues?})
+  • LimeDOM.add.chartfile(input, opts?)            // input: Blob|File|URL
+  • LimeDOM.add.chartfilePingLog(input, opts?)     // input: Blob|File|URL
+  • LimeDOM.add.filepicker(opts?)                  // drag & drop + click
 ────────────────────────────────────────────────────────────
 */
 
 (() => {
-  // ---------- CSS ----------
-  const CSS = `
-  :root{
-    --bg:#121212; --text:#fff; --card:#1e1e1e; --card2:#282828; --accent:#1db954;
-    --radius:12px; --gap:12px; --font:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
-    --card-minh:96px; --cols:3;
-  }
-  *{box-sizing:border-box} html,body{height:100%}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);
-       -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
-  .ld-wrap{max-width:1200px;margin:0 auto;padding:20px}
-  .ld-header{background:var(--accent);color:#000;border-radius:var(--radius);padding:24px 20px;margin:20px 0}
-  .ld-header h1{margin:0 0 6px 0;font-size:clamp(22px,4vw,40px);line-height:1.1}
-  .ld-header p{margin:0;opacity:.8}
-
-  /* GRID (row-first) */
-  .ld-stack[data-layout="grid"]{display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:var(--gap);align-items:start}
-  .ld-stack[data-layout="grid"] .ld-toprow{grid-column:1/-1}
-
-  /* COLUMNS (masonry) */
-  .ld-stack[data-layout="columns"]{column-count:var(--cols);column-gap:var(--gap)}
-  .ld-stack[data-layout="columns"]>.ld-card,
-  .ld-stack[data-layout="columns"]>.ld-toprow{break-inside:avoid;-webkit-column-break-inside:avoid;margin:0 0 var(--gap) 0;display:block;width:100%}
-  .ld-stack[data-layout="columns"] .ld-toprow{column-span:all;-webkit-column-span:all}
-
-  @media (max-width:980px){:root{--cols:2}}
-  @media (max-width:640px){:root{--cols:1}}
-
-  .ld-card{background:var(--card);border-radius:var(--radius);padding:14px 16px;min-height:var(--card-minh)}
-  .ld-sechead{margin:0 0 8px 0;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .ld-secbody{display:grid;gap:10px}
-
-  /* Copy button */
-  .ld-btn{position:relative;display:inline-flex;align-items:center;gap:10px;border:0;cursor:pointer;font-size:16px;
-          padding:12px 14px;border-radius:10px;background:var(--card2);color:#fff;transition:background .2s,transform .05s;max-width:100%}
-  .ld-btn:hover{background:#303030}.ld-btn:active{transform:scale(.996)}
-  .ld-swatch{width:18px;height:18px;border-radius:4px;box-shadow:0 0 0 1px rgba(255,255,255,.15) inset;flex:0 0 18px}
-  .ld-mono{font-family:ui-monospace,Menlo,Consolas,monospace}
-  .ld-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100% - 64px)}
-  .ld-pulse{animation:ldPulse .9s ease}@keyframes ldPulse{0%{transform:scale(1)}50%{transform:scale(1.03)}100%{transform:scale(1)}}
-  .ld-status{position:absolute;right:10px;top:50%;transform:translateY(-50%);padding:2px 8px;border-radius:999px;background:var(--accent);color:#000;font-size:12px;line-height:1.2;opacity:0;pointer-events:none;transition:opacity .2s}
-  .ld-status.show{opacity:.95}
-
-  /* Webpage card */
-  .ld-linkcard{display:flex;gap:12px;align-items:center;text-decoration:none;color:inherit;min-width:0;height:100%}
-  .ld-thumb{width:56px;height:56px;border-radius:10px;flex:0 0 56px;object-fit:cover;background:#0f0f0f;box-shadow:0 0 0 1px rgba(255,255,255,.08) inset}
-  .ld-meta{display:grid;gap:4px;min-width:0}
-  .ld-title{font-weight:700;font-size:15px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
-  .ld-desc{opacity:.75;font-size:13px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
-  @media (max-width:520px){.ld-desc{display:none}}
-  .ld-host{opacity:.6;font-size:12px}
-
-  /* Note & Quote */
-  .ld-note{font-size:14px;line-height:1.45;opacity:.92}
-  .ld-quote{font-size:15px;line-height:1.45;font-style:italic;border-left:3px solid var(--accent);padding-left:12px}
-  .ld-cite{display:block;margin-top:6px;opacity:.7;font-size:12px}
-
-  /* Image thumbnails */
-  .ld-thumbimg{width:100%;max-height:200px;object-fit:cover;border-radius:8px;cursor:pointer;transition:transform .2s}
-  .ld-thumbimg:hover{transform:scale(1.02)}
-  .ld-thumbgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-  @media (max-width:560px){ .ld-thumbgrid{grid-template-columns:1fr} }
-
-  /* Fullscreen overlay & gallery */
-  .ld-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;pointer-events:none;transition:opacity .2s}
-  .ld-overlay.show{opacity:1;pointer-events:auto}
-  .ld-overlay img{max-width:92vw;max-height:92vh;border-radius:12px;box-shadow:0 0 20px rgba(0,0,0,.6)}
-  .ld-close{position:absolute;top:18px;right:26px;font-size:32px;color:#fff;cursor:pointer;font-weight:bold;line-height:1}
-  .ld-nav{position:absolute;top:0;bottom:0;width:42%;cursor:pointer}
-  .ld-left{left:0}
-  .ld-right{right:0}
-  .ld-arrow{position:absolute;top:50%;transform:translateY(-50%);font-size:36px;color:#fff;opacity:.9;user-select:none}
-  .ld-left .ld-arrow{left:18px}
-  .ld-right .ld-arrow{right:18px}
-  .ld-disabled{opacity:.35;pointer-events:none}
-  `;
-  const addCSS = s => { const t=document.createElement('style'); t.textContent=s; document.head.appendChild(t); };
-  addCSS(CSS);
-
-  // ---------- Helpers ----------
+  // ---------- Tiny helpers ----------
   const q = (sel, root=document) => root.querySelector(sel);
   const h = (tag, props={}, ...kids) => {
     const n=document.createElement(tag);
-    for(const [k,v] of Object.entries(props)){
-      if(k==='class') n.className=v;
-      else if(k==='style'&&v&&typeof v==='object') Object.assign(n.style,v);
-      else if(k.startsWith('on')&&typeof v==='function') n.addEventListener(k.slice(2).toLowerCase(),v);
-      else if(k==='text') n.textContent=v;
+    for (const [k,v] of Object.entries(props)) {
+      if (k==='class') n.className=v;
+      else if (k==='style' && v && typeof v==='object') Object.assign(n.style,v);
+      else if (k.startsWith('on') && typeof v==='function') n.addEventListener(k.slice(2).toLowerCase(),v);
+      else if (k==='text') n.textContent=v;
       else n.setAttribute(k,v);
     }
-    for(const c of kids.flat()) if(c!=null&&c!==false) n.appendChild(c instanceof Node?c:document.createTextNode(String(c)));
+    for (const c of kids.flat()) if (c!=null && c!==false) n.appendChild(c instanceof Node ? c : document.createTextNode(String(c)));
     return n;
   };
   const isHex = s => typeof s==='string' && /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(s.trim());
   const copy = v => navigator.clipboard.writeText(String(v));
-
-  // URL helpers for webpage cards
   const toHttpUrl = (u) => {
     try{
       if (/^(https?:)?\/\//i.test(u)) return new URL(u, location.href);
@@ -155,6 +55,9 @@
   };
   const favicon = host => `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`;
   const stripWWW = host => String(host||'').replace(/^www\./i,'');
+  const fileAlt = (src) => (String(src||'').split(/[?#]/).pop()||'').replace(/\.[^.]+$/,'')||'image';
+
+  // Fetch minimal metadata (title/description/logo) using microlink (no screenshot)
   const fetchMeta = async url => {
     const r = await fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}&meta=true&screenshot=false`, {mode:'cors'});
     if (!r.ok) throw new Error('meta fetch failed');
@@ -162,207 +65,726 @@
     return {
       title: d.title || '',
       description: d.description || '',
-      image: (d.image && (d.image.url||d.image)) || (d.logo && (d.logo.url||d.logo)) || ''
+      image: (d.logo && (d.logo.url||d.logo)) || ''
     };
   };
 
-  // Default alt from filename
-  const fileAlt = (src) => {
-    const s = String(src||'').split(/[?#]/)[0];            // drop query/hash
-    const base = s.substring(s.lastIndexOf('/')+1);        // file.ext
-    const name = base.replace(/\.[^.]+$/,'');              // file
-    return name || 'image';
+  // CSV/TSV parsing (quote-aware)
+  const parseDelimited = (text, delim=',') => {
+    const rows=[]; let row=[], field='', inQ=false;
+    for (let i=0;i<text.length;i++){
+      const ch=text[i], next=text[i+1];
+      if (ch === '"'){ if (inQ && next === '"'){ field+='"'; i++; } else inQ=!inQ; }
+      else if (ch === delim && !inQ){ row.push(field); field=''; }
+      else if ((ch === '\n' || ch === '\r') && !inQ){
+        if (field.length || row.length){ row.push(field); rows.push(row); row=[]; field=''; }
+        if (ch === '\r' && next === '\n') i++;
+      } else field += ch;
+    }
+    if (field.length || row.length){ row.push(field); rows.push(row); }
+    return rows;
   };
+  const looksLikeHeader = (arr=[]) =>
+    arr.length && arr.every(x => typeof x === 'string'
+      && /^[\w .\-\(\)#]+$/i.test(x) && !/^\d+(\.\d+)?$/.test(x));
 
-  // ---------- Structure ----------
-  const root = h('div',{class:'ld-wrap'});
-  const header = h('div',{class:'ld-header'}, h('h1',{text:''}), h('p',{text:''}));
+  // ---------- Structure (wrap/header/stack) ----------
+  const root  = h('div',{class:'ld-wrap'});
+  const header= h('div',{class:'ld-header'}, h('h1',{text:''}), h('p',{text:''}));
   const stack = h('div',{class:'ld-stack','data-layout':'columns'});
-  root.append(header, stack);
+  root.append(header,stack);
   document.addEventListener('DOMContentLoaded',()=>document.body.appendChild(root));
 
-  // ---------- Copy button ----------
-  const mkCopyBtn = (label, value) => {
-    const btn = h('button',{class:'ld-btn', ariaLabel:`Copy ${value} to clipboard`});
-    if (isHex(value)) btn.appendChild(h('span',{class:'ld-swatch', style:{background:value}}));
-    const mono = isHex(value) && (!label || label === value);
-    btn.append(h('span',{class: mono?'ld-label ld-mono':'ld-label', text: label || String(value)}));
-    const status = h('span',{class:'ld-status', text:'Copied!'}); btn.appendChild(status);
-    btn.addEventListener('click', async () => {
-      try{ await copy(value); status.classList.add('show'); btn.classList.add('ld-pulse');
-           setTimeout(()=>{status.classList.remove('show'); btn.classList.remove('ld-pulse');},1100); }
-      catch(e){ console.error(e); }
-    });
-    return btn;
+  // ---------- Header refs & favicon setter ----------
+  const h1=q('h1',header), p=q('p',header);
+  const setFavicon=href=>{
+    if(!href) return;
+    const types={svg:'image/svg+xml',png:'image/png',ico:'image/x-icon'};
+    const ext=(href.split('.').pop()||'').toLowerCase();
+    const type=types[ext]||'';
+    let link=q('link[rel="icon"]',document.head)||q('link[rel*="icon"]',document.head);
+    if(!link){link=document.createElement('link');link.rel='icon';document.head.appendChild(link);}
+    link.href=href; if(type) link.type=type;
   };
 
-  // ---------- Webpage card ----------
-  const mkWebCard = (url, fallback) => {
-    const card = h('div',{class:'ld-card'});
-    const a = h('a',{class:'ld-linkcard', href:url, target:'_blank', rel:'noopener noreferrer'});
-    const host = new URL(url).host;
-    const img = h('img',{class:'ld-thumb', src:fallback.thumb || favicon(host), alt:''});
-    const title = h('div',{class:'ld-title', text:fallback.title || host});
-    const desc  = h('div',{class:'ld-desc', text:fallback.description || ''});
-    const meta  = h('div',{class:'ld-meta'}, title, desc, h('div',{class:'ld-host', text:host}));
-    a.append(img, meta); card.appendChild(a);
-    return {card,img,title,desc};
+  // ---------- Global chart palette ----------
+  let GLOBAL_PALETTE = [
+    "#1db954", "#17a2b8", "#6f42c1", "#fd7e14",
+    "#0d6efd", "#dc3545", "#20c997", "#ffc107",
+    "#6610f2", "#198754", "#e83e8c", "#6c757d"
+  ];
+  const getPalette = (opts) => {
+    const p = opts && Array.isArray(opts.palette) && opts.palette.length ? opts.palette : GLOBAL_PALETTE;
+    return p;
   };
 
-  // ---------- Image overlay & gallery ----------
-  const overlay = h('div',{class:'ld-overlay'},
-    h('span',{class:'ld-close', text:'×', onclick:()=>overlay.classList.remove('show')}),
-    h('div',{class:'ld-nav ld-left',  onclick:()=>nav(-1)}, h('span',{class:'ld-arrow', text:'‹'})),
-    h('div',{class:'ld-nav ld-right', onclick:()=>nav(1)},  h('span',{class:'ld-arrow', text:'›'})),
-    h('img',{src:'',alt:''})
+  // ---------- Image overlay & gallery (image-bound navigation + smart cursor) ----------
+  const overlay = h('div', { class: 'ld-overlay' },
+    h('span', { class: 'ld-close', text: '×', onclick: () => overlay.classList.remove('show') }),
+    h('img', { src: '', alt: '' })
   );
-  let gallery = { items: [], index: 0 }; // items: [{src,alt}]
+
+  let gallery = { items: [], index: 0 };
+
   const setOverlay = () => {
-    const im = q('img',overlay);
-    const item = gallery.items[gallery.index];
-    if (!item) return;
-    im.src = item.src; im.alt = item.alt || fileAlt(item.src);
-    // clamp state UI
-    const L = q('.ld-left',overlay), R = q('.ld-right',overlay);
-    (gallery.index<=0 ? L.classList.add('ld-disabled') : L.classList.remove('ld-disabled'));
-    (gallery.index>=gallery.items.length-1 ? R.classList.add('ld-disabled') : R.classList.remove('ld-disabled'));
+    const im = q('img', overlay);
+    const it = gallery.items[gallery.index];
+    if (!it) return;
+    im.src = it.src;
+    im.alt = it.alt || fileAlt(it.src);
   };
-  const openOverlay = (items, startIndex=0) => {
+
+  const openOverlay = (items, start = 0) => {
     gallery.items = items.slice();
-    gallery.index = Math.max(0, Math.min(startIndex, gallery.items.length-1));
+    gallery.index = Math.max(0, Math.min(start, items.length - 1));
     setOverlay();
     overlay.classList.add('show');
   };
-  const nav = (dir) => {
-    if (dir<0 && gallery.index>0) { gallery.index--; setOverlay(); }
-    else if (dir>0 && gallery.index<gallery.items.length-1) { gallery.index++; setOverlay(); }
-  };
-  document.addEventListener('DOMContentLoaded',()=>document.body.appendChild(overlay));
-  document.addEventListener('keydown', (e)=>{ if(!overlay.classList.contains('show')) return;
-    if (e.key==='Escape') overlay.classList.remove('show');
-    else if (e.key==='ArrowLeft') nav(-1);
-    else if (e.key==='ArrowRight') nav(1);
-  });
-  overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.classList.remove('show'); });
 
-  // ---------- Sections / layout ----------
+  const nav = (dir) => {
+    if (dir < 0 && gallery.index > 0) {
+      gallery.index--; setOverlay();
+    } else if (dir > 0 && gallery.index < gallery.items.length - 1) {
+      gallery.index++; setOverlay();
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', () => document.body.appendChild(overlay));
+
+  // backdrop click closes (only when clicking outside the <img>)
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.classList.remove('show');
+  });
+
+  // keyboard nav
+  document.addEventListener('keydown', (e) => {
+    if (!overlay.classList.contains('show')) return;
+    if (e.key === 'Escape') overlay.classList.remove('show');
+    else if (e.key === 'ArrowLeft') nav(-1);
+    else if (e.key === 'ArrowRight') nav(1);
+  });
+
+  // image click = left/right halves navigate, and cursor shows intent
+  document.addEventListener('DOMContentLoaded', () => {
+    const im = q('img', overlay);
+    im.addEventListener('click', (e) => {
+      const rect = im.getBoundingClientRect();
+      if (e.clientX < rect.left || e.clientX > rect.right ||
+          e.clientY < rect.top  || e.clientY > rect.bottom) return;
+      const x = e.clientX - rect.left;
+      if (x < rect.width / 2) nav(-1); else nav(1);
+      e.stopPropagation();
+    });
+    im.addEventListener('mousemove', (e) => {
+      const rect = im.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      im.style.cursor = (x < rect.width / 2) ? 'w-resize' : 'e-resize';
+    });
+    im.addEventListener('mouseleave', () => { im.style.cursor = 'default'; });
+  });
+
+  // ---------- Sections ----------
   let currentContainer = stack;
-  const startSection = title => {
+  const beginSection = (title) => {
     const card = h('div',{class:'ld-card'});
-    card.append(h('h3',{class:'ld-sechead', text:title||''}), h('div',{class:'ld-secbody'}));
-    const body = q('.ld-secbody', card);
+    card.append(
+      h('h3',{class:'ld-sechead',text:title||''}),
+      h('div',{class:'ld-secbody'})
+    );
+    const body = q('.ld-secbody',card);
     stack.appendChild(card);
     currentContainer = body;
     return body;
   };
   const endSection = () => { currentContainer = stack; };
 
-  // ---------- Header refs ----------
-  const h1 = q('h1', header), p = q('p', header);
-
-  // ---------- Favicon helper ----------
-  const setFavicon = href => {
-    if (!href) return;
-    const types = { svg:'image/svg+xml', png:'image/png', ico:'image/x-icon' };
-    const ext = (href.split('.').pop()||'').toLowerCase();
-    const type = types[ext] || '';
-    let link = q('link[rel="icon"]',document.head) || q('link[rel*="icon"]',document.head);
-    if (!link){ link=document.createElement('link'); link.rel='icon'; document.head.appendChild(link); }
-    link.href = href; if (type) link.type = type;
+  // ---------- Table builder ----------
+  const toRows = (values) => {
+    if (values && typeof values === 'object' && !Array.isArray(values)) {
+      const headers = ['Key','Value'];
+      const rows = Object.entries(values).map(([k,v])=>[String(k), String(v)]);
+      return {headers, rows};
+    }
+    if (Array.isArray(values) && values.length>0) {
+      if (typeof values[0] === 'object' && !Array.isArray(values[0])) {
+        const keys = Array.from(values.reduce((set,row)=>{Object.keys(row).forEach(k=>set.add(k));return set;}, new Set()));
+        const headers = keys;
+        const rows = values.map(o=>keys.map(k=>o[k]!==undefined?String(o[k]):'')); 
+        return {headers, rows};
+      }
+      if (Array.isArray(values[0])) {
+        const first = values[0];
+        const headerish = first.every(x=>typeof x==='string');
+        const headers = headerish ? first : first.map((_,i)=>`Col ${i+1}`);
+        const data = headerish ? values.slice(1) : values;
+        const rows = data.map(r=>r.map(x=>String(x)));
+        return {headers, rows};
+      }
+      if (typeof values[0] === 'number' || typeof values[0] === 'string') {
+        const headers = ['Value'];
+        const rows = values.map(v=>[String(v)]);
+        return {headers, rows};
+      }
+    }
+    return {headers:[], rows:[]};
+  };
+  const renderTable = (values) => {
+    const {headers, rows} = toRows(values);
+    const t = h('table',{class:'ld-table'});
+    if (headers.length){
+      const tr = h('tr',{}, ...headers.map(th=>h('th',{text:String(th)})));
+      t.appendChild(tr);
+    }
+    rows.forEach(r=>{
+      const tr = h('tr',{}, ...r.map(cell=>h('td',{text:cell})));
+      t.appendChild(tr);
+    });
+    return t;
   };
 
-  // ---------- Public API ----------
-  const api = {
-    _version:'0.4.8',
-    page:{
-      set title(v){ document.title = v ?? ''; }, get title(){ return document.title; },
-      set icon(href){ setFavicon(href); }, get icon(){ const l=q('link[rel="icon"]',document.head)||q('link[rel*="icon"]',document.head); return l?l.href:''; }
-    },
-    section(title){ return startSection(title); },
-    end(){ endSection(); return true; },
-    layout:{
-      set columns(n){ document.documentElement.style.setProperty('--cols', String(Math.max(1, Math.min(6, Number(n)||3)))); },
-      get columns(){ const v=getComputedStyle(document.documentElement).getPropertyValue('--cols').trim(); return Number(v||3); },
-      set mode(m){ stack.setAttribute('data-layout', (m==='grid'?'grid':'columns')); },
-      get mode(){ return stack.getAttribute('data-layout') || 'columns'; }
-    },
-    add:{
-      title(v){ h1.textContent = v ?? ''; }, subtitle(v){ p.textContent = v ?? ''; },
-      copy(labelOrValue, valueOptional){
-        const host = currentContainer || stack;
-        const label = Array.isArray(labelOrValue) ? String(labelOrValue[0])
-                     : (valueOptional===undefined ? undefined : String(labelOrValue));
-        const value = Array.isArray(labelOrValue) ? String(labelOrValue[1])
-                     : (valueOptional===undefined ? String(labelOrValue) : String(valueOptional));
-        if (host === stack){ const card=h('div',{class:'ld-card'}); card.appendChild(mkCopyBtn(label, value)); stack.appendChild(card); return card; }
-        const btn = mkCopyBtn(label, value); host.appendChild(btn); return btn;
-      },
-      webpage(urlLike){
-        const http = toHttpUrl(urlLike);
-        if (!http){
-          // local/relative path → simple link card using current host favicon
-          const card = h('div',{class:'ld-card'}, h('a',{class:'ld-linkcard', href:urlLike, target:'_blank', rel:'noopener noreferrer'},
-            h('img',{class:'ld-thumb', src:favicon(location.host), alt:''}),
-            h('div',{class:'ld-meta'},
-              h('div',{class:'ld-title', text:urlLike}),
-              h('div',{class:'ld-desc', text:''}),
-              h('div',{class:'ld-host', text:location.host})
-            )));
-          const host = currentContainer || stack; (host===stack?stack:host).appendChild(card); return card;
-        }
-        const final = http.href; const hostName = http.host;
-        const bare = stripWWW(hostName);
-        const fb = { title: bare, description:'', thumb: favicon(hostName) };
-        const {card, img, title, desc} = mkWebCard(final, fb);
-        const looksError = (s) => typeof s==='string' && /(?:attention required|just a moment|cloudflare|access denied|forbidden|blocked|error\b|security check|verify you are human)/i.test(s);
-        fetchMeta(final).then(m=>{
-          if(m.image) img.src=m.image;
-          const errorish = looksError(m.title) || looksError(m.description);
-          title.textContent = (!errorish && m.title) ? m.title : bare;
-          desc.textContent  = (!errorish && m.description) ? m.description : '';
-        }).catch(()=>{ title.textContent = bare; desc.textContent=''; });
-        const host = currentContainer || stack; (host===stack?stack:host).appendChild(card); return card;
-      },
-      note(text){
-        const el = h('p',{class:'ld-note', text:String(text??'')});
-        const host = currentContainer || stack;
-        if (host===stack){ const card=h('div',{class:'ld-card'}); card.appendChild(el); stack.appendChild(card); return card; }
-        host.appendChild(el); return el;
-      },
-      quote(text, author){
-        const wrap = h('div',{class:'ld-quote'}, h('span',{text:String(text??'')}), author?h('small',{class:'ld-cite', text:`— ${author}`}):null);
-        const host = currentContainer || stack;
-        if (host===stack){ const card=h('div',{class:'ld-card'}); card.appendChild(wrap); stack.appendChild(card); return card; }
-        host.appendChild(wrap); return wrap;
-      },
-      image(src, alt){
-        const _alt = alt || fileAlt(src);
-        const thumb = h('img',{class:'ld-thumbimg', src:String(src), alt:_alt, onclick:()=>openOverlay([{src:String(src),alt:_alt}], 0)});
-        const host = currentContainer || stack;
-        if (host===stack){ const card=h('div',{class:'ld-card'}); card.appendChild(thumb); stack.appendChild(card); return card; }
-        host.appendChild(thumb); return thumb;
-      },
-      images(list){
-        // Normalize to [{src,alt}]
-        const items = (Array.isArray(list)?list:[]).map(it=>{
-          if (typeof it === 'string') return {src:it, alt:fileAlt(it)};
-          return {src:String(it.src), alt: it.alt || fileAlt(it.src)};
-        }).filter(x=>x && x.src);
-
-        if (!items.length) return null;
-
-        const grid = h('div',{class:'ld-thumbgrid'});
-        items.forEach((it, idx)=>{
-          const im = h('img',{class:'ld-thumbimg', src:it.src, alt:it.alt, onclick:()=>openOverlay(items, idx)});
-          grid.appendChild(im);
-        });
-
-        const host = currentContainer || stack;
-        if (host===stack){ const card=h('div',{class:'ld-card'}); card.appendChild(grid); stack.appendChild(card); return card; }
-        host.appendChild(grid); return grid;
+  // ---------- Chart helpers ----------
+  const normalizeSeries = (values) => {
+    if (!values) return {labels:[], data:[]};
+    if (Array.isArray(values)) {
+      if (values.length && typeof values[0] === 'object' && !Array.isArray(values[0])) {
+        return {labels: values.map(x=>String(x.label ?? '')), data: values.map(x=>Number(x.value ?? 0))};
       }
+      if (values.length && (typeof values[0] === 'number')) {
+        return {labels: values.map((_,i)=>String(i+1)), data: values.map(Number)};
+      }
+      if (values.length && (typeof values[0] === 'string')) {
+        const counts = values.reduce((m,s)=>{m[s]=(m[s]||0)+1;return m;}, {});
+        return {labels:Object.keys(counts), data:Object.values(counts)};
+      }
+    }
+    if (typeof values === 'object') {
+      const labels = Object.keys(values).map(String);
+      const data = Object.values(values).map(Number);
+      return {labels, data};
+    }
+    return {labels:[], data:[]};
+  };
+
+  // ---------- Bar chart ----------
+  const drawBarChart = (canvas, series, opts={}) => {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const styleH = Math.max(120, Number(opts.height||180));
+    const width  = canvas.clientWidth || 300;
+    const height = styleH;
+    canvas.width  = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    canvas.style.height = `${styleH}px`;
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+
+    const labels = series.labels;
+    const data   = series.data;
+    const maxVal = (opts.max!=null? Number(opts.max): Math.max(1, ...data));
+    const pad = { t: opts.paddingTop ?? 36, r: 12, b: 28, l: 28 };
+    const w = width - pad.l - pad.r;
+    const h = height - pad.t - pad.b;
+    const n = Math.max(1, data.length);
+    const gap = 8;
+    const barW = Math.max(4, (w - (n-1)*gap) / n);
+    const pal = getPalette(opts);
+
+    // bg
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0,0,width,height);
+
+    // axis
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad.l, pad.t + h);
+    ctx.lineTo(pad.l + w, pad.t + h);
+    ctx.stroke();
+
+    // bars
+    for (let i=0;i<n;i++){
+      const x = pad.l + i*(barW+gap);
+      const val = Math.max(0, data[i]||0);
+      const bh = (val/maxVal)*h;
+      const y = pad.t + h - bh;
+
+      ctx.fillStyle = pal[i % pal.length];
+      ctx.fillRect(x, y, barW, bh);
+
+      if (opts.showValues !== false){
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(String(val), x + barW/2, Math.max(12, y - 4));
+      }
+
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = '12px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(String(labels[i] ?? ''), x + barW/2, pad.t + h + 14);
+    }
+
+    if (opts.title){
+      ctx.fillStyle='rgba(255,255,255,0.9)';
+      ctx.font='13px system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(String(opts.title), 6, 14);
     }
   };
 
-  Object.defineProperty(window,'display',{value:api,writable:false,enumerable:true});
+  // ---------- Pie chart (labels outside + values inside) ----------
+  const drawPieChart = (canvas, series, opts = {}) => {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const styleH = Math.max(160, Number(opts.height || 220));
+    const width  = canvas.clientWidth || 320;
+    const height = styleH;
+    canvas.width  = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    canvas.style.height = `${styleH}px`;
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+
+    // bg
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0,0,width,height);
+
+    const padT = opts.paddingTop ?? 30;
+    const cx = width/2, cy = padT + (height - padT)/2;
+    const r  = Math.max(40, Math.min(width, height - padT) * 0.35);
+
+    const data   = series.data.map(v => Math.max(0, Number(v)||0));
+    const labels = series.labels.map(s => String(s ?? ''));
+    const total  = data.reduce((a,b)=>a+b,0) || 1;
+    const pal    = getPalette(opts);
+
+    // slices
+    let start = -Math.PI/2;
+    const arcs = [];
+    for (let i=0;i<data.length;i++){
+      const val = data[i];
+      const angle = (val/total) * Math.PI * 2;
+      const end = start + angle;
+
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, start, end);
+      ctx.closePath();
+      ctx.fillStyle = pal[i % pal.length];
+      ctx.fill();
+
+      arcs.push({i, val, angle, start, end});
+      start = end;
+    }
+
+    // outside labels
+    if (opts.showLabels !== false) {
+      ctx.font = '12px system-ui, sans-serif';
+      ctx.fillStyle = '#fff';
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+      ctx.lineWidth = 1;
+
+      for (const a of arcs){
+        if (a.angle <= 0.005) continue;
+        const mid = (a.start + a.end) / 2;
+        const elbowR     = r * 0.92;
+        const endR       = r * 1.06;
+
+        const ex = cx + Math.cos(mid) * elbowR;
+        const ey = cy + Math.sin(mid) * elbowR;
+        const isRight = Math.cos(mid) >= 0;
+        const tx = cx + Math.cos(mid) * endR + (isRight ? 8 : -8);
+        const ty = cy + Math.sin(mid) * endR;
+
+        ctx.beginPath();
+        ctx.moveTo(ex, ey);
+        ctx.lineTo(tx + (isRight ? -6 : 6), ty);
+        ctx.stroke();
+
+        const name = labels[a.i] ?? '';
+        ctx.textAlign = isRight ? 'left' : 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(name, tx, ty);
+      }
+    }
+
+    // values inside
+    if (opts.showValues !== false) {
+      for (const a of arcs){
+        if (a.angle <= 0.02) continue;
+        const mid = (a.start + a.end) / 2;
+        const rx = cx + Math.cos(mid) * r * 0.62;
+        const ry = cy + Math.sin(mid) * r * 0.62;
+        const frac = a.val / total;
+        const valText = (opts.valueFormat ? String(opts.valueFormat(a.val, frac)) : String(a.val));
+
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(valText, rx, ry);
+      }
+    }
+
+    // title inside canvas
+    if (opts.title){
+      ctx.fillStyle='rgba(255,255,255,0.9)';
+      ctx.font='13px system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(String(opts.title), 6, 14);
+    }
+  };
+
+  // ---------- Public API ----------
+  const api={
+    _version:'0.5.1',
+
+    // Global palette (affects all charts unless overridden via opts.palette)
+    get palette(){ return GLOBAL_PALETTE; },
+    set palette(p){ if (Array.isArray(p) && p.length) GLOBAL_PALETTE = p.slice(); },
+
+    page:{
+      set title(v){h1.textContent=v??''; document.title=v??'';},
+      get title(){return document.title;},
+      set icon(href){setFavicon(href);},
+      get icon(){const l=q('link[rel="icon"]',document.head)||q('link[rel*="icon"]',document.head);return l?l.href:'';}
+    },
+    begin(title){return beginSection(title);},
+    end(){endSection();return true;},
+    layout:{
+      set columns(n){document.documentElement.style.setProperty('--cols',String(Math.max(1,Math.min(6,Number(n)||3))));},
+      get columns(){const v=getComputedStyle(document.documentElement).getPropertyValue('--cols').trim();return Number(v||3);},
+      set mode(m){stack.setAttribute('data-layout',(m==='grid'?'grid':'columns'));},
+      get mode(){return stack.getAttribute('data-layout')||'columns';}
+    },
+
+    // ---------- add.* ----------
+    add:{
+      // page header texts
+      title(v){h1.textContent=v??'';}, 
+      subtitle(v){p.textContent=v??'';},
+
+      // Copy button
+      copy(a,b){
+        const host=currentContainer||stack;
+        const label=Array.isArray(a)?String(a[0]):(b===undefined?undefined:String(a));
+        const value=Array.isArray(a)?String(a[1]):(b===undefined?String(a):String(b));
+        const btn=h('button',{class:'ld-btn',ariaLabel:`Copy ${value} to clipboard`});
+        if(isHex(value)) btn.appendChild(h('span',{class:'ld-swatch',style:{background:value}}));
+        const mono=isHex(value)&&(!label||label===value);
+        btn.append(h('span',{class:mono?'ld-label ld-mono':'ld-label',text:label||String(value)}));
+        const status=h('span',{class:'ld-status',text:'Copied!'}); btn.appendChild(status);
+        btn.addEventListener('click',async()=>{
+          try{ await copy(value); status.classList.add('show'); btn.classList.add('ld-pulse');
+               setTimeout(()=>{status.classList.remove('show'); btn.classList.remove('ld-pulse');},1100);}
+          catch(e){ console.error(e); }
+        });
+        if(host===stack){const card=h('div',{class:'ld-card'});card.appendChild(btn);stack.appendChild(card);return card;}
+        host.appendChild(btn);return btn;
+      },
+
+      // Webpage preview card (favicon + title/desc; no thumbnails)
+      webpage(urlLike){
+        const http = toHttpUrl(urlLike);
+        const mountTo = (currentContainer===stack?stack:currentContainer);
+        if (!http){
+          const host = location.host || "local";
+          const card=h('div',{class:'ld-card'});
+          const a=h('a',{class:'ld-linkcard',href:'#',onclick:e=>e.preventDefault()});
+          const img=h('img',{class:'ld-thumb',src:favicon(host),alt:''});
+          const meta=h('div',{class:'ld-meta'},
+            h('div',{class:'ld-title',text:String(urlLike)}),
+            h('div',{class:'ld-desc',text:''}),
+            h('div',{class:'ld-host',text:host})
+          );
+          a.append(img,meta); card.appendChild(a); mountTo.appendChild(card); return card;
+        }
+        const final = http.href; const hostName = http.host; const bare = stripWWW(hostName);
+        const card=h('div',{class:'ld-card'});
+        const a=h('a',{class:'ld-linkcard',href:final,target:'_blank',rel:'noopener noreferrer'});
+        const img=h('img',{class:'ld-thumb',src:favicon(hostName),alt:''});
+        const title=h('div',{class:'ld-title',text:bare});
+        const desc=h('div',{class:'ld-desc',text:''});
+        const meta=h('div',{class:'ld-meta'},title,desc,h('div',{class:'ld-host',text:hostName}));
+        a.append(img,meta); card.appendChild(a); mountTo.appendChild(card);
+        fetchMeta(final).then(m=>{
+          const looksBad = s => typeof s==='string' && /attention required|just a moment|cloudflare|access denied|forbidden|blocked|error\b|security check|verify you are human/i.test(s);
+          if(!looksBad(m.title) && m.title) title.textContent = m.title;
+          if(!looksBad(m.description) && m.description) desc.textContent = m.description;
+          // intentionally ignore m.image — favicon-only cards by design
+        }).catch(()=>{});
+        return card;
+      },
+
+      // Notes & quotes
+      note(text){
+        const el=h('p',{class:'ld-note',text:String(text??'')});
+        if(currentContainer===stack){const card=h('div',{class:'ld-card'});card.appendChild(el);stack.appendChild(card);return card;}
+        currentContainer.appendChild(el);return el;
+      },
+      quote(text,author){
+        const wrap=h('div',{class:'ld-quote'},
+          h('span',{text:String(text??'')}),
+          author?h('small',{class:'ld-cite',text:`— ${author}`}):null
+        );
+        if(currentContainer===stack){const card=h('div',{class:'ld-card'});card.appendChild(wrap);stack.appendChild(card);return card;}
+        currentContainer.appendChild(wrap);return wrap;
+      },
+
+      // Images & grid
+      image(src,alt){
+        const _alt=alt||fileAlt(src);
+        const thumb=h('img',{class:'ld-thumbimg',src:String(src),alt:_alt,onclick:()=>openOverlay([{src:String(src),alt:_alt}],0)});
+        if(currentContainer===stack){const card=h('div',{class:'ld-card'});card.appendChild(thumb);stack.appendChild(card);return card;}
+        currentContainer.appendChild(thumb);return thumb;
+      },
+      images(list){
+        const items=(Array.isArray(list)?list:[]).map(it=>typeof it==='string'
+          ? {src:it,alt:fileAlt(it)} : {src:String(it.src),alt:it.alt||fileAlt(it.src)})
+          .filter(x=>x&&x.src);
+        if(!items.length) return null;
+        const grid=h('div',{class:'ld-thumbgrid'});
+        items.forEach((it,idx)=>grid.appendChild(h('img',{class:'ld-thumbimg',src:it.src,alt:it.alt,onclick:()=>openOverlay(items,idx)})));
+        if(currentContainer===stack){const card=h('div',{class:'ld-card'});card.appendChild(grid);stack.appendChild(card);return card;}
+        currentContainer.appendChild(grid);return grid;
+      },
+
+      // Table
+      table(values){
+        const tbl = renderTable(values);
+        if(currentContainer===stack){const card=h('div',{class:'ld-card'});card.appendChild(tbl);stack.appendChild(card);return card;}
+        currentContainer.appendChild(tbl);return tbl;
+      },
+
+      // Bar Chart (title drawn inside canvas; no external title div)
+      chart(values, opts){
+        const series = normalizeSeries(values);
+        const wrap = h('div',{}); // no ld-charttitle here
+        const canvas = h('canvas',{class:'ld-canvas'});
+        wrap.appendChild(canvas);
+
+        const draw = () => {
+          const w = canvas.clientWidth || 0;
+          if (w < 10) { requestAnimationFrame(draw); return; }
+          try { drawBarChart(canvas, series, opts||{}); } catch(e){ console.error(e); }
+        };
+        const ro = new ResizeObserver(()=>draw());
+        const mount = () => { ro.observe(canvas); draw(); };
+
+        let card;
+        if(currentContainer===stack){card=h('div',{class:'ld-card'});card.appendChild(wrap);stack.appendChild(card);}
+        else { currentContainer.appendChild(wrap); }
+        requestAnimationFrame(mount);
+
+        return card || wrap;
+      },
+
+      // Pie Chart (title drawn inside canvas; no external title div)
+      pie(values, opts){
+        const series = normalizeSeries(values);
+        const wrap = h('div',{}); // no ld-charttitle here
+        const canvas = h('canvas',{class:'ld-canvas'});
+        wrap.appendChild(canvas);
+
+        const draw = () => {
+          const w = canvas.clientWidth || 0;
+          if (w < 10) { requestAnimationFrame(draw); return; }
+          try { drawPieChart(canvas, series, opts||{}); } catch(e){ console.error(e); }
+        };
+        const ro = new ResizeObserver(()=>draw());
+        const mount = () => { ro.observe(canvas); draw(); };
+
+        let card;
+        if(currentContainer===stack){card=h('div',{class:'ld-card'});card.appendChild(wrap);stack.appendChild(card);}
+        else { currentContainer.appendChild(wrap); }
+        requestAnimationFrame(mount);
+
+        return card || wrap;
+      },
+
+      // --- chartfile: Blob/File OR URL string ---
+      async chartfile(input, opts){
+        try{
+          let ext="", txt="", data=null;
+
+          if (input instanceof Blob) {
+            const mime=(input.type||"").toLowerCase();
+            ext = /json/.test(mime) ? "json" : (/tsv/.test(mime) ? "tsv" : "csv");
+            if (ext==="json") data = JSON.parse(await input.text());
+            else txt = await input.text();
+          } else {
+            const href = String(input);
+            const res = await fetch(href, { cache:"no-store" });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const url = new URL(href, location.href);
+            ext = (url.pathname.split(".").pop()||"").toLowerCase();
+            if (ext==="json") data = await res.json(); else txt = await res.text();
+          }
+
+          let values;
+          if (data!=null){
+            values = Array.isArray(data) ? data
+                   : (data && typeof data==="object" ? data : []);
+          } else {
+            const delim = ext==="tsv" ? "\t" : ",";
+            const rows = parseDelimited(txt, delim).filter(r=>r.some(c=>String(c).trim()!==""));
+            if (!rows.length) throw new Error("Empty file");
+
+            let dataRows = rows, headers=null;
+            if (looksLikeHeader(rows[0])) {
+              headers = rows[0].map(s=>String(s).trim().toLowerCase());
+              dataRows = rows.slice(1);
+            }
+
+            const li = headers ? headers.indexOf("label") : -1;
+            const vi = headers ? headers.indexOf("value") : -1;
+
+            values = (li!==-1 && vi!==-1)
+              ? dataRows.map(r=>({label:String(r[li]??''), value:Number(r[vi]??0)}))
+              : dataRows.map(r=>({label:String(r[0]??''),  value:Number(r[1]??0)}));
+          }
+
+          return this.chart(values, opts||{});
+        }catch(err){
+          console.error("[LimeDOM.add.chartfile] failed:", err);
+          return this.note(`chartfile: ${String(err.message||err)}`);
+        }
+      },
+
+      // --- chartfilePingLog: Blob/File OR URL string ---
+      async chartfilePingLog(input, opts){
+        try{
+          const txt = input instanceof Blob
+            ? await input.text()
+            : await (await fetch(String(input), { cache:"no-store" })).text();
+
+          const lines = txt.trim().split(/\r?\n/).filter(Boolean);
+          if (!lines.length) throw new Error("empty log");
+
+          const limit = opts?.limit ?? 20;
+          const slice = lines.slice(-limit);
+
+          const seriesByHost = {};
+          slice.forEach(line=>{
+            // expect "HH:MM:SS host:val host:val ..."
+            const parts = line.split(/\s+/).slice(1);
+            parts.forEach(p=>{
+              const [host,val] = p.split(":");
+              if (!host || !val) return;
+              const n = Number(val);
+              if (Number.isFinite(n)) (seriesByHost[host] ??= []).push(n);
+            });
+          });
+
+          if (!Object.keys(seriesByHost).length) throw new Error("no host:value pairs found");
+
+          const values = Object.entries(seriesByHost).map(([host,arr])=>({
+            label: host,
+            value: Math.round(arr.reduce((a,b)=>a+b,0)/arr.length)
+          }));
+
+          return this.chart(values, {
+            title: opts?.title ?? "Ping Averages",
+            height: opts?.height ?? 180,
+            paddingTop: opts?.paddingTop ?? 36
+          });
+        }catch(err){
+          console.error("[LimeDOM.add.chartfilePingLog] failed:", err);
+          return this.note(`pinglog: ${String(err.message||err)}`);
+        }
+      },
+
+      // Read local file text (used by filepicker)
+      async _readFileText(file){
+        return await new Promise((res,rej)=>{
+          const r=new FileReader();
+          r.onload=()=>res(String(r.result||'')); r.onerror=rej; r.readAsText(file);
+        });
+      },
+
+      // Drag+Drop / Click picker that auto-routes to chartfile / pinglog
+      filepicker(opts = {}){
+        const host = currentContainer===stack
+          ? (()=>{const card=h('div',{class:'ld-card'});stack.appendChild(card);return card;})()
+          : currentContainer;
+
+        const title = opts.title ?? 'Drop a file or click to browse';
+        const hint  = opts.hint  ?? 'JSON/CSV/TSV → chart · Ping-Check .txt → ping averages';
+
+        const box = h('div',{class:'ld-drop',tabindex:'0'},
+          h('h4',{text:title}),
+          h('small',{text:hint})
+        );
+        const input = h('input',{type:'file',style:'display:none;',accept:opts.accept || ''});
+
+        const setDrag = on => box.classList[on?'add':'remove']('drag');
+
+        const handleFile = async (file) => {
+          try{
+            if (typeof opts.onfile === 'function') {
+              const url = URL.createObjectURL(file);
+              return void opts.onfile(file, url);
+            }
+            const name = (file.name||'').toLowerCase();
+            const mode = opts.mode;
+
+            const chartIt = () => api.add.chartfile(file, {title: opts.title2 || opts.title || 'Chart'});
+            const pingIt  = () => api.add.chartfilePingLog(file, {title: opts.title2 || opts.title || 'Ping averages', limit: opts.limit || 30});
+
+            if (mode === 'chart')    return chartIt();
+            if (mode === 'pinglog')  return pingIt();
+            if (mode === 'raw') {
+              const txt = await api.add._readFileText(file);
+              return api.add.note(txt.split(/\r?\n/).slice(0,10).join('\n'));
+            }
+            if (mode === 'table') {
+              const txt = await api.add._readFileText(file);
+              const rows = txt.trim().split(/\r?\n/).map(l=>l.split(','));
+              const headers = rows[0]||[];
+              const data = rows.slice(1).map(r=>Object.fromEntries(headers.map((k,i)=>[k,r[i]])));
+              return api.add.table(data);
+            }
+
+            if (name.endsWith('.json') || name.endsWith('.csv') || name.endsWith('.tsv')) {
+              return chartIt();
+            }
+            if (name.endsWith('.txt')) {
+              const txt = await api.add._readFileText(file);
+              const looksPing = /\b\d{2}:\d{2}:\d{2}\s+\w+:\d+(?:\s+\w+:\d+)+/.test(txt);
+              return looksPing ? pingIt() : api.add.note(txt.split(/\r?\n/).slice(0,10).join('\n'));
+            }
+            return chartIt(); // fallback
+          }catch(e){
+            console.error('[LimeDOM.add.filepicker] failed:', e);
+            api.add.note('Could not load file. See console for details.');
+          }
+        };
+
+        // drag & drop
+        box.addEventListener('dragenter', e=>{e.preventDefault(); setDrag(true);});
+        box.addEventListener('dragover',  e=>{e.preventDefault(); setDrag(true);});
+        box.addEventListener('dragleave', ()=>setDrag(false));
+        box.addEventListener('drop', async e=>{
+          e.preventDefault(); setDrag(false);
+          const f = e.dataTransfer?.files?.[0];
+          if (f) await handleFile(f);
+        });
+
+        // click to open
+        box.addEventListener('click', ()=> input.click());
+        input.addEventListener('change', async e=>{
+          const f = e.target.files?.[0];
+          if (f) await handleFile(f);
+          input.value = '';
+        });
+
+        host.append(box, input);
+        return box;
+      },
+    }
+  };
+
+  Object.defineProperty(window,'LimeDOM',{value:api,writable:false,enumerable:true});
 })();
