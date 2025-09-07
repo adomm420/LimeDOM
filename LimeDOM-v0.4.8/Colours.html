@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+</head>
+<body>
+<script src=".\LimeDOM.js"></script>
+<script>
+// Set favicon from the API (nice polish for the tab)
+//	display.page.icon = "D:/420EXE/favicon.svg"; // png/ico/svg all fine
+
+// If you ever want to switch layouts:
+//	display.layout.mode = "grid";     // row-first, classic grid
+//	display.layout.mode = "columns";  // (default) masonry column flow
+//	display.layout.columns = 3;       // change column count at runtime
+
+display.page.title = "My Colours Dashboard"; // updates <title> in <head>
+
+display.add.title(display.page.title);
+display.add.subtitle("Accent candidates");
+
+display.section("This is my original Twitch accent colour");
+	display.add.copy("#00F593");
+	display.add.note("Slightly different, used in this framework too:");
+	display.add.copy("#1db954");
+display.end();
+
+display.section("v2");
+	display.add.copy("#9EFF45");
+	display.add.note("Less bright:");
+	display.add.copy("#57B400");
+display.end();
+
+display.section("v3");
+	display.add.copy("#c8e686");
+display.end();
+
+display.section("Tools");
+	display.add.webpage("htmlcolorcodes.com");
+	display.add.webpage("bggenerator.com");
+	display.add.webpage("schemecolor.com/flat-web-design.php");
+display.end();
+
+</script>
+
+</body>
+</html>
