@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LimeDOM.js Demo</title>
+  <link rel="stylesheet" href="./LimeDOM.css" />
+  <!-- Important: no defer, so LimeDOM is available to inline code -->
+  <script src="./LimeDOM.js"></script>
+</head>
+<body>
+<script>
+LimeDOM.page.title = "LimeDOM.js Demo v" + LimeDOM.version + "";
+// LimeDOM.layout.columns = 3; // optional override; leave commented for responsive
+LimeDOM.layout.mode = "columns";
+
+LimeDOM.add.title(LimeDOM.page.title);
+LimeDOM.add.subtitle("Demonstration");
+
+LimeDOM.begin("About LimeDOM.js");
+LimeDOM.add.note("LimeDOM.js is a minimal-effort JavaScript framework for building neat, responsive HTML UIs. It comes with a tiny API for creating dashboards, config boards, and UI elements — all without external dependencies.");
+LimeDOM.add.webpage("github.com/adomm420/LimeDOM");
+LimeDOM.end();
+
+LimeDOM.begin("Quote");
+LimeDOM.add.quote("Simplicity is the ultimate sophistication.", "Leonardo da Vinci");
+LimeDOM.end();
+
+LimeDOM.begin("Webpage cards");
+LimeDOM.add.webpage("github.com/adomm420");
+LimeDOM.add.webpage("github.com/adomm420/Ping-Monitor");
+LimeDOM.add.webpage("github.com/adomm420/YT-Zoom");
+LimeDOM.add.webpage("linktr.ee/adomm420"); 
+LimeDOM.end();
+
+LimeDOM.begin("Copy buttons");
+LimeDOM.add.copy("#1db954");                           // hex → shows color swatch
+LimeDOM.add.copy(["API key: abc-123-xyz", "abc-123-xyz"]);          // [label, value]
+LimeDOM.add.copy("Support Email", "help@acme.io");     // (label, value)
+LimeDOM.end();
+
+LimeDOM.add.copy("#1db954");                           // hex → shows color swatch
+
+LimeDOM.begin("NBA Scoreboard — literals");
+LimeDOM.add.table([
+  { Team: "Boston Celtics",     Q1: 25, Q2: 27, Q3: 22, Q4: 29, Final: 103 },
+  { Team: "Los Angeles Lakers", Q1: 28, Q2: 24, Q3: 31, Q4: 26, Final: 109 }
+]);
+LimeDOM.end();
+
+LimeDOM.begin("Celtics points by quarter");
+LimeDOM.add.chart(
+  [
+    { label: "Q1", value: 25 },
+    { label: "Q2", value: 27 },
+    { label: "Q3", value: 22 },
+    { label: "Q4", value: 29 },
+    { label: "TOTAL", value: 103 }
+  ],
+  { title: "Points" }
+);
+LimeDOM.end();
+
+LimeDOM.begin("Lakers points by quarter");
+LimeDOM.add.chart(
+  [
+    { label: "Q1", value: 28 },
+    { label: "Q2", value: 24 },
+    { label: "Q3", value: 31 },
+    { label: "Q4", value: 26 },
+    { label: "TOTAL", value: 109 }
+  ],
+  { title: "Points" }
+);
+LimeDOM.end();
+
+LimeDOM.begin("Pie Chart — Lakers by quarter");
+LimeDOM.add.pie({ Q1:28, Q2:24, Q3:31, Q4:26 }, { title: "Points", showValues: true });
+LimeDOM.end();
+
+LimeDOM.begin("Pie Chart — Celtics by quarter");
+LimeDOM.add.pie({ Q1:25, Q2:27, Q3:22, Q4:29 }, { title: "Points", showValues: true });
+LimeDOM.end();
+
+LimeDOM.begin("Pie Chart — Celtics vs Lakers");
+LimeDOM.add.pie({ Celtics:103, Lakers:109 }, { title: "Points", showValues: true });
+LimeDOM.end();
+
+LimeDOM.begin("Single image");
+LimeDOM.add.images("pic1.jpg");
+LimeDOM.end();
+
+LimeDOM.begin("Image grid");
+LimeDOM.add.images([
+  "pic2.jpg",
+  "pic3.jpg",
+  { src: "pic4.jpg", alt: "Third image" },
+  { src: "pic5.jpg", alt: "Fourth image" }
+]);
+LimeDOM.end();
+
+LimeDOM.begin("Try your own file");
+LimeDOM.add.filepicker({
+  title: "Drop CSV/JSON/TSV or Ping-Check .txt",
+  hint:  "Auto-detect & render",
+  accept: ".csv,.tsv,.json,.txt",
+  limit: 40
+});
+LimeDOM.end();
+
+LimeDOM.begin("Countdown example");
+LimeDOM.add.countdown(Date.now()+2*60e3, { title:"2 min timer", start:Date.now() });
+LimeDOM.end();
+
+</script>
+</body>
+</html>

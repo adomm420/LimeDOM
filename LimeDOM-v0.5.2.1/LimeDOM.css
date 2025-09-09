@@ -1,0 +1,262 @@
+/*  
+📄  LimeDOM.css — Stylesheet for LimeDOM.js
+🔧  Version:    0.5.2.1 (Stable)
+📅  Updated:    2025-09-09
+👤  Author:     Mantas Adomavičius
+🌐  Repo:       https://github.com/adomm420/LimeDOM
+*/
+/*
+🧠  Summary
+  Provides the dark + lime theme, responsive layouts, card styling,
+  copy buttons, webpage cards, notes, quotes, tables, charts, images
+  with fullscreen overlay, countdown timers, and file picker visuals.
+*/
+
+:root{
+  --bg:#121212; --text:#fff; --card:#1e1e1e; --card2:#282828; --accent:#1db954;
+  --radius:12px; --gap:12px; --font:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
+  --card-minh:96px; --cols:3;
+}
+*{box-sizing:border-box} html,body{height:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale
+}
+.ld-wrap{max-width:1200px;margin:0 auto;padding:20px}
+.ld-header{
+  background:var(--accent);
+  color:#000;
+  border-radius:var(--radius);
+  padding:24px 20px;
+  margin:20px 0
+}
+.ld-header h1{margin:0 0 6px 0;font-size:clamp(22px,4vw,40px);line-height:1.1}
+.ld-header p{margin:0;opacity:.8}
+
+.ld-stack[data-layout="grid"]{
+  display:grid;
+  grid-template-columns:repeat(var(--cols),1fr);
+  gap:var(--gap);
+  align-items:start
+}
+.ld-stack[data-layout="grid"] .ld-toprow{grid-column:1/-1}
+
+.ld-stack[data-layout="columns"]{
+  column-count:var(--cols);
+  column-gap:var(--gap)
+}
+.ld-stack[data-layout="columns"]>.ld-card,
+.ld-stack[data-layout="columns"]>.ld-toprow{
+  break-inside:avoid;
+  -webkit-column-break-inside:avoid;
+  margin:0 0 var(--gap) 0;
+  display:block;
+  width:100%
+}
+.ld-stack[data-layout="columns"] .ld-toprow{column-span:all;-webkit-column-span:all}
+
+@media (max-width:980px){:root{--cols:2}}
+@media (max-width:640px){:root{--cols:1}}
+
+.ld-card{
+  background:var(--card);
+  border-radius:var(--radius);
+  padding:14px 16px;
+  min-height:var(--card-minh)
+}
+.ld-sechead{margin:0 0 8px 0;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ld-secbody{display:grid;gap:10px}
+
+.ld-btn{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  border:0;
+  cursor:pointer;
+  font-size:16px;
+  padding:12px 14px;
+  border-radius:10px;
+  background:var(--card2);
+  color:#fff;
+  transition:background .2s,transform .05s;
+  width:100%
+}
+.ld-btn:hover{background:#303030}
+.ld-btn:active{transform:scale(.996)}
+.ld-swatch{width:18px;height:18px;border-radius:4px;box-shadow:0 0 0 1px rgba(255,255,255,.15) inset;flex:0 0 18px}
+.ld-mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+.ld-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100% - 64px)}
+.ld-pulse{animation:ldPulse .9s ease}
+@keyframes ldPulse{0%{transform:scale(1)}50%{transform:scale(1.03)}100%{transform:scale(1)}}
+.ld-status{
+  position:absolute;
+  right:10px;
+  top:50%;
+  transform:translateY(-50%);
+  padding:2px 8px;
+  border-radius:999px;
+  background:var(--accent);
+  color:#000;
+  font-size:12px;
+  line-height:1.2;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .2s
+}
+.ld-status.show{opacity:.95}
+
+.ld-linkcard{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  text-decoration:none;
+  color:inherit;
+  min-width:0;
+  background: var(--card2);       /* match add.copy */
+  border-radius:10px;             /* match add.copy */
+  padding:12px 14px;              /* match add.copy */
+  transition: background .2s;     /* match add.copy */
+}
+.ld-thumb{
+  width:56px;
+  height:56px;
+  border-radius:10px;
+  flex:0 0 56px;
+  object-fit:cover;
+  background:#0f0f0f;
+  box-shadow:0 0 0 1px rgba(255,255,255,.08) inset
+}
+.ld-meta{display:grid;gap:4px;min-width:0}
+.ld-title{font-weight:700;font-size:15px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.ld-desc{opacity:.75;font-size:13px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+@media (max-width:520px){.ld-desc{display:none}}
+.ld-host{opacity:.6;font-size:12px}
+
+.ld-note{font-size:14px;line-height:1.45;opacity:.92}
+.ld-quote{font-size:15px;line-height:1.45;font-style:italic;border-left:3px solid var(--accent);padding-left:12px}
+.ld-cite{display:block;margin-top:6px;opacity:.7;font-size:12px}
+
+.ld-thumbimg{
+  width:100%;
+  max-height:200px;
+  object-fit:cover;
+  border-radius:8px;
+  cursor:pointer;
+  transition:transform .2s
+}
+.ld-thumbimg:hover{transform:scale(1.02)}
+.ld-thumbgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (max-width:560px){ .ld-thumbgrid{grid-template-columns:1fr} }
+
+.ld-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.85);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .2s
+}
+.ld-overlay.show{opacity:1;pointer-events:auto}
+.ld-overlay img{max-width:92vw;max-height:92vh;border-radius:12px;box-shadow:0 0 20px rgba(0,0,0,.6)}
+.ld-close{position:absolute;top:18px;right:26px;font-size:32px;color:#fff;cursor:pointer;font-weight:bold;line-height:1}
+
+/* Table */
+.ld-table{width:100%;border-collapse:separate;border-spacing:0 6px}
+.ld-table th,.ld-table td{padding:10px 12px;text-align:left;background:#222;border:1px solid #2b2b2b}
+.ld-table th{background:#262626;font-weight:700}
+.ld-table tr:first-child th{border-top-left-radius:8px;border-top-right-radius:8px}
+.ld-table tr:last-child td{border-bottom-left-radius:8px;border-bottom-right-radius:8px}
+
+/* Chart */
+.ld-charttitle{font-size:14px;opacity:.9;margin:2px 2px 0 2px}
+.ld-canvas{width:100%;height:180px;display:block}
+
+/* File picker */
+.ld-drop{
+  background: var(--card);
+  border: 1px dashed rgba(255,255,255,.25);
+  border-radius: 12px;
+  padding: 18px 16px;
+  text-align: center;
+  color: var(--text);
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+  min-height: 96px;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+}
+.ld-drop h4{
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  opacity: .95;
+}
+.ld-drop small{
+  display: block;
+  opacity: .7;
+  font-size: 12px;
+}
+.ld-drop:hover{
+  border-color: rgba(255,255,255,.35);
+  box-shadow: 0 0 0 2px rgba(255,255,255,.04) inset;
+}
+.ld-drop.drag{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(29,185,84,.25) inset;
+  background: #1a1a1a;
+}
+
+/* Full-bleed single image in a card */
+.ld-singleimg { margin: 0; }
+.ld-singleimg-img {
+  display:block;
+  width:100%;
+  height:auto;
+  border-radius: 12px;
+}
+
+
+/* === LimeDOM Countdown (centered, bar-only) === */
+.ld-countdown{ display:grid; gap:12px; }
+.ld-countdown .ld-sub{ font-size:14px; opacity:.9; }
+.ld-countwrap{ display:grid; justify-items:center; }
+.ld-countrow{ display:flex; align-items:center; justify-content:center; gap:18px; flex-wrap:wrap; }
+.ld-countgrid{ display:grid; grid-auto-flow:column; gap:10px; }
+.ld-seg{ background: var(--card2); border: 1px solid #2b2b2b; border-radius: 12px; padding: 10px 14px; min-width: 78px; text-align:center; }
+.ld-val{ font-size:28px; font-weight:800; line-height:1.1; }
+.ld-unit{ font-size:12px; text-transform:uppercase; opacity:.75; }
+.ld-progress{ width:100%; height:10px; background:#1a1a1a; border-radius:999px; overflow:hidden; }
+.ld-progress>span{ display:block; height:100%; width:calc(var(--p) * 100%); background:var(--accent); transition:width .25s linear; }
+.ld-urgent .ld-seg{ animation:ldPulse .8s infinite alternate; border-color:#dc3545 }
+@keyframes ldPulse{ from{ box-shadow:0 0 0px #dc3545 } to{ box-shadow:0 0 12px #dc3545 } }
+
+
+/* Cursor consistency for clickable elements */
+.ld-thumbimg, .ld-linkcard, .ld-drop, .ld-btn { cursor: pointer; }
+.ld-thumbimg:hover { box-shadow: 0 0 0 1px rgba(29,185,84,.35), 0 0 18px rgba(29,185,84,.12); }
+.ld-linkcard:hover{ background:#303030; }
+.ld-drop:hover { outline: 1px dashed rgba(29,185,84,.45); }
+
+/* Hover effect for full-bleed single images */
+.ld-singleimg { cursor: pointer; }
+.ld-singleimg:hover img {
+  box-shadow: 0 0 0 2px rgba(29,185,84,.6),
+              0 0 22px rgba(29,185,84,.25);
+  transition: box-shadow .2s;
+}
+
+/* Force pointer across entire file picker box */
+.ld-drop, .ld-drop * {
+  cursor: pointer !important;
+}
+
+.ld-copybtn .ld-label{ flex:1 1 auto; min-width:0; }
