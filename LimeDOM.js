@@ -1,15 +1,18 @@
 /*  
-────────────────────────────────────────────────────────────
-📄  LimeDOM.js — UI + Tables + Charts + Gallery + Web Cards
-🔧  Version:  0.5.1 (pie charts; favicon-only web cards; image-bound nav)
-📅  Updated:  2025-09-07
-👤  Author:   Mantas Adomavičius
-
+📄  LimeDOM.js is a minimal-effort JS framework for building neat, responsive HTML UIs.
+🔧  Version:    0.5.2.1 (Stable)
+📅  Updated:    2025-09-09
+👤  Author:     Mantas Adomavičius
+🌐  Repo:       https://github.com/adomm420/LimeDOM
+*/
+/*
 🧠  Summary
-  Minimal dark UI with lime accent and a tiny `LimeDOM.*` API.
-  Masonry/grid layout, copy buttons, webpage previews, notes,
-  quotes, images (fullscreen gallery), tables, bar & pie charts.
-
+  Provides a tiny `LimeDOM.*` API for building dashboards and UI boards.
+  Includes sections, copy buttons, webpage previews, notes, quotes,
+  images with fullscreen gallery, responsive tables, bar & pie charts,
+  countdown timers, and drag-&-drop file pickers — all dependency-free.
+*/
+/*
 📚  API (highlights)
   • LimeDOM.page.title / .icon
   • LimeDOM.layout.mode = "columns" | "grid"; LimeDOM.layout.columns = 1..6
@@ -26,7 +29,6 @@
   • LimeDOM.add.chartfile(input, opts?)            // input: Blob|File|URL
   • LimeDOM.add.chartfilePingLog(input, opts?)     // input: Blob|File|URL
   • LimeDOM.add.filepicker(opts?)                  // drag & drop + click
-────────────────────────────────────────────────────────────
 */
 
 (() => {
@@ -165,23 +167,33 @@
   });
 
   // image click = left/right halves navigate, and cursor shows intent
-  document.addEventListener('DOMContentLoaded', () => {
-    const im = q('img', overlay);
-    im.addEventListener('click', (e) => {
-      const rect = im.getBoundingClientRect();
-      if (e.clientX < rect.left || e.clientX > rect.right ||
-          e.clientY < rect.top  || e.clientY > rect.bottom) return;
-      const x = e.clientX - rect.left;
-      if (x < rect.width / 2) nav(-1); else nav(1);
-      e.stopPropagation();
-    });
-    im.addEventListener('mousemove', (e) => {
-      const rect = im.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      im.style.cursor = (x < rect.width / 2) ? 'w-resize' : 'e-resize';
-    });
-    im.addEventListener('mouseleave', () => { im.style.cursor = 'default'; });
+  
+document.addEventListener('DOMContentLoaded', () => {
+  const im = q('img', overlay);
+  im.addEventListener('click', (e) => {
+    const rect = im.getBoundingClientRect();
+    if (e.clientX < rect.left || e.clientX > rect.right ||
+        e.clientY < rect.top  || e.clientY > rect.bottom) return;
+    const x = e.clientX - rect.left;
+    const isLeft = x < rect.width / 2;
+    const hasPrev = gallery.index > 0;
+    const hasNext = gallery.index < gallery.items.length - 1;
+    if (isLeft && hasPrev)      nav(-1);
+    else if (!isLeft && hasNext) nav(1);
+    e.stopPropagation();
   });
+  im.addEventListener('mousemove', (e) => {
+    const rect = im.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const isLeft = x < rect.width / 2;
+    const hasPrev = gallery.index > 0;
+    const hasNext = gallery.index < gallery.items.length - 1;
+    if (gallery.items.length <= 1) { im.style.cursor = 'default'; return; }
+    im.style.cursor = isLeft ? (hasPrev ? 'pointer' : 'default') : (hasNext ? 'pointer' : 'default');
+  });
+  im.addEventListener('mouseleave', () => { im.style.cursor = 'default'; });
+});
+
 
   // ---------- Sections ----------
   let currentContainer = stack;
@@ -439,7 +451,8 @@
 
   // ---------- Public API ----------
   const api={
-    _version:'0.5.1',
+    version:'0.5.2.1',
+    _version:'0.5.2.1',
 
     // Global palette (affects all charts unless overridden via opts.palette)
     get palette(){ return GLOBAL_PALETTE; },
@@ -534,21 +547,123 @@
       },
 
       // Images & grid
-      image(src,alt){
-        const _alt=alt||fileAlt(src);
-        const thumb=h('img',{class:'ld-thumbimg',src:String(src),alt:_alt,onclick:()=>openOverlay([{src:String(src),alt:_alt}],0)});
-        if(currentContainer===stack){const card=h('div',{class:'ld-card'});card.appendChild(thumb);stack.appendChild(card);return card;}
-        currentContainer.appendChild(thumb);return thumb;
-      },
       images(list){
-        const items=(Array.isArray(list)?list:[]).map(it=>typeof it==='string'
-          ? {src:it,alt:fileAlt(it)} : {src:String(it.src),alt:it.alt||fileAlt(it.src)})
-          .filter(x=>x&&x.src);
+        const arr = Array.isArray(list) ? list : (list ? [list] : []);
+        const items = arr.map(it => typeof it === 'string'
+          ? { src: it, alt: fileAlt(it) }
+          : { src: String(it.src), alt: it.alt || fileAlt(it.src) })
+          .filter(x => x && x.src);
         if(!items.length) return null;
+
+        // single image → full-bleed figure
+        if (items.length === 1) {
+          const it = items[0];
+          const fig = h('figure', { class: 'ld-singleimg' },
+            h('img', {
+              class: 'ld-singleimg-img',
+              src: it.src,
+              alt: it.alt,
+              loading: 'lazy',
+              decoding: 'async',
+              onclick: () => openOverlay(items, 0)
+            })
+          );
+          if(currentContainer===stack){const card=h('div',{class:'ld-card'});card.appendChild(fig);stack.appendChild(card);return card;}
+          currentContainer.appendChild(fig);return fig;
+        }
+
+        // 2+ → grid
         const grid=h('div',{class:'ld-thumbgrid'});
         items.forEach((it,idx)=>grid.appendChild(h('img',{class:'ld-thumbimg',src:it.src,alt:it.alt,onclick:()=>openOverlay(items,idx)})));
         if(currentContainer===stack){const card=h('div',{class:'ld-card'});card.appendChild(grid);stack.appendChild(card);return card;}
         currentContainer.appendChild(grid);return grid;
+      },
+
+      // Countdown (bar-only, centered)
+      countdown(target, opts = {}) {
+        const host = currentContainer===stack
+          ? (()=>{const card=h('div',{class:'ld-card'});stack.appendChild(card);return card;})()
+          : currentContainer;
+
+        const endDate = (target instanceof Date) ? target : new Date(target);
+        if (!endDate || isNaN(endDate)) {
+          const el = h('p',{class:'ld-note',text:'Invalid countdown target'});
+          host.appendChild(el); return el;
+        }
+
+        const wrap = h('div',{class:'ld-countdown'});
+        if (opts.title) wrap.appendChild(h('div',{class:'ld-sub',text:opts.title}));
+
+        const countwrap = h('div',{class:'ld-countwrap'});
+        const row       = h('div',{class:'ld-countrow'});
+
+        const seg = (unit)=> h('div',{class:'ld-seg'},
+                          h('div',{class:'ld-val',text:'00'}),
+                          h('div',{class:'ld-unit',text:unit}));
+        const dSeg = seg('days');
+        const hSeg = seg('hours');
+        const mSeg = seg('mins');
+        const sSeg = seg('secs');
+        const grid = h('div',{class:'ld-countgrid'}, dSeg, hSeg, mSeg, sSeg);
+
+        row.append(grid);
+        countwrap.append(row);
+        wrap.append(countwrap);
+
+        let startMs = null, bar = null;
+        if (opts.start) {
+          const s = (opts.start instanceof Date) ? +opts.start : +new Date(opts.start);
+          if (Number.isFinite(s)) startMs = s;
+        }
+        if (startMs) {
+          bar = h('div',{class:'ld-progress'}, h('span',{style:'--p:0'}));
+          wrap.appendChild(bar);
+        }
+
+        host.appendChild(wrap);
+
+        const endText = opts.endText || "Done";
+        const interval = Math.max(200, opts.interval || 1000);
+        const hideZeroDays = opts.hideZeroDays !== false;
+
+        function tick() {
+          const now = Date.now();
+          let diff = endDate - now;
+          if (diff <= 0) {
+            [dSeg,hSeg,mSeg,sSeg].forEach(seg=>{
+              seg.querySelector('.ld-val').textContent='00';
+            });
+            wrap.classList.add('ld-done');
+            sSeg.querySelector('.ld-unit').textContent = endText;
+            if (bar)  bar.firstElementChild.style.setProperty('--p','1');
+            clearInterval(id);
+            return;
+          }
+          const s = Math.floor(diff/1000) % 60;
+          const m = Math.floor(diff/60000) % 60;
+          const h = Math.floor(diff/3600000) % 24;
+          const d = Math.floor(diff/86400000);
+
+          dSeg.querySelector('.ld-val').textContent = String(d).padStart(2,'0');
+          hSeg.querySelector('.ld-val').textContent = String(h).padStart(2,'0');
+          mSeg.querySelector('.ld-val').textContent = String(m).padStart(2,'0');
+          sSeg.querySelector('.ld-val').textContent = String(s).padStart(2,'0');
+
+          dSeg.style.display = (hideZeroDays && d===0) ? 'none' : '';
+
+          if (startMs) {
+            const total = Math.max(1, endDate - startMs);
+            const p = Math.min(1, Math.max(0, (now - startMs) / total));
+            bar.firstElementChild.style.setProperty('--p', String(p));
+          }
+
+          if (diff < 10000) wrap.classList.add("ld-urgent");
+          else wrap.classList.remove("ld-urgent");
+        }
+        tick();
+        const id = setInterval(tick, interval);
+
+        return wrap;
       },
 
       // Table
