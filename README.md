@@ -1,47 +1,65 @@
-# 🌿 LimeDOM.js v0.5.2.1 (Stable)
-Updated: 2025-09-09
+# 🌿 LimeDOM.js v0.5.3.10 (Stable)
+
+Updated: 2025-09-12
 
 **LimeDOM.js** is a minimal-effort JavaScript framework for building neat, responsive HTML UIs.  
 It comes with a tiny API for creating dashboards, config boards, and UI elements — all without external dependencies.
 
-🌐 Repo: [github.com/adomm420/LimeDOM](https://github.com/adomm420/LimeDOM)
+Visit https://LimeDOM.eu for a live DEMO.
+
+🔗 https://github.com/adomm420/LimeDOM
 
 ---
-
 ## ✨ Features
 
 - 🖼 **Cards & Layouts**
   - Masonry (`columns`) and grid modes
   - Responsive design that adapts to screen size
+
 - 📋 **Copy to Clipboard**
   - Copy buttons with hex swatch previews
   - Visual feedback with “Copied!” status
+
 - 🌐 **Webpage Cards**
   - Auto-fetch title + description + favicon
   - Graceful fallback if metadata fails (uses branding + hostname)
+
 - 📝 **Notes & Quotes**
   - Simple styled blocks for text or citations
+
 - 🖼 **Images**
   - Single image → full-bleed card with fullscreen overlay
-  - Multi-image gallery grid with ← / → navigation
+  - Multi-image sets default to **album mode**: one preview, overlay navigation with ← / →
+  - `{ grid: true }` option forces thumbnail grid layout
   - Navigation restricted inside image bounds
-  - Index-finger cursor only on sides where navigation is possible
+  - Cursor changes only on sides where navigation is possible
+
 - 📊 **Tables & Charts**
   - Render arrays, objects, or CSV into tables
   - Bar charts with values + labels
   - Pie charts with labels outside + values inside
+  - **Theme-aware charts** (Dark/Light colors via CSS vars)
   - Global or custom palettes
+
 - ⏳ **Countdown Timers**
-  - Simple countdown to a target `Date` or timestamp
+  - Countdown to a target `Date` or timestamp
   - Centered card layout with tiles (days/hours/mins/secs)
   - Progress bar indicator (when `start` is provided)
   - Optional pulse effect when under 10s
+
 - 📂 **File Picker**
   - Drag & drop or click
   - Auto-detects CSV/TSV/JSON → charts
   - Detects Ping-Check logs → average ping chart
+
+- 🎛️ **Navbar**
+  - `LimeDOM.nav.begin({ title, left, right, showTheme })`
+  - Sticky top bar with custom buttons
+  - Built-in Dark/Light scheme toggle
+
 - ⚡ **Zero dependencies**
   - Pure JS + CSS, just include the script
+
 
 ---
 
@@ -70,8 +88,14 @@ Copy **`LimeDOM.js`** and **`LimeDOM.css`** into your project and include them i
 <body>
 <script>
   LimeDOM.page.title = "My Dashboard";
-  LimeDOM.add.title("My Dashboard");
-  LimeDOM.add.subtitle("Accent Candidates");
+
+  // Navbar with theme toggle
+  LimeDOM.nav.begin({
+    title: "Demo",
+    left: [{ label: "Home", onClick: () => location.reload() }],
+    right: [{ label: "GitHub", onClick: () => open("https://github.com/adomm420/LimeDOM") }],
+    showTheme: true
+  });
 
   LimeDOM.begin("Colors");
     LimeDOM.add.copy("#00F593");
@@ -80,6 +104,11 @@ Copy **`LimeDOM.js`** and **`LimeDOM.css`** into your project and include them i
 
   LimeDOM.begin("Links");
     LimeDOM.add.webpage("https://htmlcolorcodes.com/");
+  LimeDOM.end();
+
+  LimeDOM.begin("Charts");
+    LimeDOM.add.chart({ Apples: 5, Oranges: 3 }, { title: "Fruit" });
+    LimeDOM.add.pie({ Cats: 4, Dogs: 6 }, { title: "Pets" });
   LimeDOM.end();
 </script>
 </body>
@@ -99,54 +128,49 @@ LimeDOM.layout.mode = "columns";      // "columns" or "grid"
 LimeDOM.layout.columns = 3;           // 1..6 columns
 
 LimeDOM.begin("Section title");
-  // ... content ...
+// ... content ...
 LimeDOM.end();
 ```
 
 ### Content
 ```js
 // Copy buttons
-LimeDOM.add.copy(value);                 // copy button (swatch if hex)
-LimeDOM.add.copy(label, value);          // with custom label
+LimeDOM.add.copy(value);
+LimeDOM.add.copy(label, value);
 
 // Webpage preview cards
-LimeDOM.add.webpage("urlLike");          // shows favicon + title + desc
-                                         // fallback to branding + hostname
+LimeDOM.add.webpage("urlLike");
 
 // Notes & Quotes
-LimeDOM.add.note("Some text here...");   // styled note
-LimeDOM.add.quote("Quote text","Author");// styled quote with optional author
+LimeDOM.add.note("Some text here...");
+LimeDOM.add.quote("Quote text","Author");
 
-// Images (single or list)
-LimeDOM.add.images("a.png");             // single image → full-bleed overlay
-LimeDOM.add.images([
-  {src:"a.png",alt:"First"},
-  "b.png",
-  {src:"c.png",alt:"Third"}
-]);                                      // gallery with ←/→ navigation
+// Images
+LimeDOM.add.images("a.png");                       // single image → overlay
+LimeDOM.add.images(["a.png","b.png","c.png"]);     // album default → single preview, overlay nav
+LimeDOM.add.images(["a.png","b.png"], { grid:true }); // force thumbnail grid
 
 // Tables
 LimeDOM.add.table(values);
 
-// Charts
-LimeDOM.add.chart(values, {title, height, max, showValues, palette});
-LimeDOM.add.pie(values,   {title, height, showLabels, showValues, palette});
+// Charts (theme-aware)
+LimeDOM.add.chart(values, { title, height, max, showValues, palette });
+LimeDOM.add.pie(values,   { title, height, showLabels, showValues, palette });
 
 // Countdown
-LimeDOM.add.countdown(Date.now() + 60000, {
-  title: "One minute timer",
-  endText: "Done",
-  start: Date.now(),        // enables progress bar
-  interval: 1000,
-  hideZeroDays: true
-});
+LimeDOM.add.countdown(Date.now() + 60000, { title: "One minute timer" });
 
 // File picker
-LimeDOM.add.filepicker({
-  title: "Drop a file",
-  hint:  "CSV/JSON/TSV or Ping log",
-  accept: ".csv,.tsv,.json,.txt",
-  limit: 40
+LimeDOM.add.filepicker({ title: "Drop a file", hint: "CSV/JSON/TSV or Ping log" });
+```
+
+### Navbar
+```js
+LimeDOM.nav.begin({
+  title: "Demo",
+  left: [{ label: "Reload", onClick: () => location.reload() }],
+  right: [{ label: "GitHub", onClick: () => open("https://github.com/adomm420/LimeDOM") }],
+  showTheme: true // adds Dark/Light toggle
 });
 ```
 
@@ -154,41 +178,42 @@ LimeDOM.add.filepicker({
 
 ## 📜 Changelog (Condensed)
 
+## v0.5.3.10 — 2025-09-12 (Stable)
+- Images: Album mode default (single preview → overlay). Use `{ grid: true }` for thumbnails.
+- Charts: Theme-aware via CSS vars (`--chart-bg`, `--chart-axis`, `--chart-text`), auto blend dark/light.
+- Synced files: LimeDOM.js, LimeDOM.css, demo.html.
+
+### v0.5.3.9 — 2025-09-10 (Stable)
+- Improved Light Scheme palette (softer backgrounds, better text contrast).
+- Theme-aware charts (`drawBarChart`, `drawPieChart` use `--chart-*` CSS vars).
+- Scheme toggle button fixed with `.btn-invert` theme-appropriate base and soft hover states.
+- Navbar hover + theme switch visuals tuned.
+
+### v0.5.3.8 — 2025-09-09 (Stable)
+- Introduced `LimeDOM.nav.begin()` navbar.
+- Added Dark/Light scheme toggle.
+- Extended Light Scheme palette.
+- Charts partially updated but background remained dark.
+
+### v0.5.2.7 — 2025-09-08
+- Added theme-aware chart rendering via `chartColors()`.
+- Charts redraw on theme toggle.
+- Bug: CSS vars missing, charts still dark.
+
+### v0.5.2.6 — 2025-09-07
+- Fixed Light Scheme palette (copy buttons, notes, tables readable).
+- Explicit background/text for all components.
+- Added navbar CSS section, `.btn` styling.
+- First scheme toggle hover rules.
+
+### v0.5.2.5 — 2025-09-05 (Stable)
+- Reset baseline with Light/Dark palettes and working demo.
+
 ### v0.5.2.1 — 2025-09-09 (Stable)
-- First build-numbered stable release
-- Adopted monotonic build numbering (never resets, acts as regression tracker)
+- Build numbering introduced as regression tracker.
 
-### v0.5.2 — 2025-09-08 (Stable)
-- Added `add.countdown()` (bar-only, stable)
-- Simplified `add.images()` (single → full-bleed, multi → gallery)
-- Removed `add.image()`
-- Improved overlay with index-finger cursor
+---
 
-### v0.5.1 — 2025-09-07 (Stable)
-- Added `add.pie()` charts
-- Overlay cursor fixes
-- Simplified webpage cards
-- Restored filepicker style
-- Unified global chart palette
+## 👤 Author
 
-### v0.5.0 — 2025-09-06 (Stable)
-- Introduced table + chart support
-- Added inline CSV/JSON parsing
-- Added filepicker with auto-detect
-
-### v0.4.8 — 2025-08-28 (Stable)
-- Added `add.images()` gallery with fullscreen overlay
-- Alt text defaults to filename
-- Clamped navigation (no wrap-around)
-
-### v0.4.7 — 2025-08-25 (Stable)
-- Restored rich webpage cards
-- Added single `add.image()` overlay with Esc/backdrop close
-
-### v0.4.5 — 2025-08-20 (Stable)
-- Renamed `tab.*` → `add.title` / `add.subtitle`
-- Removed duplicate `clicktocopy`
-
-### v0.4.3 — 2025-08-17 (Stable)
-- Introduced `"columns"` masonry layout mode
-
+Mantas Adomavičius a.k.a adomm420
