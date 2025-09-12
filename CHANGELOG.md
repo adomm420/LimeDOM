@@ -1,12 +1,53 @@
-<!--  
-📄  LimeDOM.js Changelog
-🌐  Repo: https://github.com/adomm420/LimeDOM
+<!--
+🔗 https://LimeDOM.eu
+🔗 https://github.com/adomm420/LimeDOM
 -->
 # 📜 Changelog
 
-All notable changes to **LimeDOM.js** will be documented here.
+All notable changes to **LimeDOM.js** will be documented here. Visit https://LimeDOM.eu for a live DEMO.
 
 ---
+## v0.5.3.10 — 2025-09-12 (Stable)
+- Images: Album mode is now the default.
+- Shows a single preview image.
+  - Clicking opens the full overlay with ← / → navigation.
+  - { grid: true } can be passed to force the classic thumbnail grid.
+- Charts: Fully theme-aware.
+  - Background, axis, and text colors now follow CSS variables (--chart-bg, --chart-axis, --chart-text).
+  - Charts automatically blend into both light and dark themes.
+- All files (LimeDOM.js, LimeDOM.css, demo.html) synced and confirmed stable.
+
+## v0.5.3.9 — 2025-09-10 (Stable)
+- Improved Light Scheme palette (softer backgrounds, better text contrast).
+- Theme-aware charts (`drawBarChart`, `drawPieChart` use `--chart-*` CSS vars).
+- Scheme toggle button fixed:
+  - Uses `.btn-invert` with theme-appropriate base.
+  - Hover states: Dark = accent pill, Light = soft lime tint.
+- Navbar hover + theme switch visuals tuned.
+- Marked v0.5.3.9 as new stable base.
+
+## v0.5.3.8 — 2025-09-09 (Stable)
+- Introduced **navbar function** (`LimeDOM.nav.begin`) with title, left/right groups, and scheme button.
+- Added **theme toggle system** (Dark <-> Light).
+- Extended Light Scheme palette (cards, borders, notes, tables).
+- Charts partially updated but still dark background.
+
+## v0.5.2.7 — 2025-09-08
+- Introduced **theme-aware charts** (bar + pie use `chartColors()`).
+- Charts now redraw on theme change events.
+- Initial chart CSS variables (`--chart-bg`, `--chart-axis`, `--chart-text`) referenced.
+- Bug: variables not yet present in CSS, fallback kept them dark.
+
+## v0.5.2.6 — 2025-09-07
+- Fixed Light Scheme palette (better contrast for `add.copy`, buttons, tables, notes).
+- Explicit background/text colors for all components.
+- Navbar section added in CSS (generic `.btn` styling).
+- First time scheme button hover rules introduced.
+
+## v0.5.2.5 — 2025-09-05 (Stable base at the time)
+- Reset baseline: full working demo, charts, copy, notes, filepicker.
+- First clean Light/Dark palette separation.
+- Stable reference point after experimental builds.
 
 ## v0.5.2.1 — 2025-09-09 (Stable)
 - First build-numbered stable release.
