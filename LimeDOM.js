@@ -22,7 +22,7 @@
   • LimeDOM.add.copy(value|[label,value]|(label,value))
   • LimeDOM.add.webpage(urlLike)
   • LimeDOM.add.note("Text"), LimeDOM.add.quote("Text","Author")
-  • LimeDOM.add.image("src","alt?"), LimeDOM.add.images(list)
+  • LimeDOM.add.images(list, { grid? }) with a note: album is default (single preview → overlay), { grid:true } forces thumbnails.
 
   • LimeDOM.add.table(values)
   • LimeDOM.add.chart(values, {title?, height?, max?, paddingTop?, showValues?, palette?})
