@@ -87,15 +87,16 @@ LimeDOM.add.pie({ Celtics:103, Lakers:109 }, { title: "Points", showValues: true
 LimeDOM.end();
 
 LimeDOM.begin("Single image");
-LimeDOM.add.images("pic1.jpg");
+LimeDOM.add.images("https://picsum.photos/seed/lime4/600/360");
 LimeDOM.end();
 
 LimeDOM.begin("Image grid");
 LimeDOM.add.images([
-  "pic2.jpg",
-  "pic3.jpg",
-  { src: "pic4.jpg", alt: "Third image" },
-  { src: "pic5.jpg", alt: "Fourth image" }
+"https://picsum.photos/seed/lime1/600/360",
+  "https://picsum.photos/seed/lime2/600/360",
+  { src: "https://picsum.photos/seed/lime3/600/360", alt: "Third image" },
+  { src: "https://picsum.photos/seed/lime4/600/360", alt: "Fourth image" }
+]
 ]);
 LimeDOM.end();
 
@@ -115,3 +116,4 @@ LimeDOM.end();
 </script>
 </body>
 </html>
+
